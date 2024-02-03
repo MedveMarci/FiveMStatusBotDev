@@ -1,0 +1,50 @@
+[
+  {
+    "Token": "",
+    "StatusChannelId": "",
+    "ServerIP": "",
+    "ServerPort": "",
+    "ServerName": "",
+    "Whitelist": false,
+    "AveragePlayer": true,
+    "MostPlayer": {
+      "Enabled": true,
+      "Count": 0
+    },
+    "MessageID": "",
+    "MaxPlayers": 0,
+    "Buttons": {
+      "Button": {
+        "Enabled": false,
+        "Label": "",
+        "URL": ""
+      },
+      "Button1": {
+        "Enabled": false,
+        "Label": "",
+        "URL": ""
+      },
+      "Button2": {
+        "Enabled": false,
+        "Label": "",
+        "URL": ""
+      },
+      "Button3": {
+        "Enabled": false,
+        "Label": "",
+        "URL": ""
+      },
+      "Button4": {
+        "Enabled": false,
+        "Label": "",
+        "URL": ""
+      }
+    },
+    "Colors": {
+      "BackgroundColor": "#000000",
+      "BorderColor": "#ffffff",
+      "OnlineBackgroundColor": "#020",
+      "OfflineBackgroundColor": "#220000"
+    }
+  }
+]
