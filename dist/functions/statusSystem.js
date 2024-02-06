@@ -23,21 +23,11 @@ let refreshed = false;
 function StatusSystemStart() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const now = new Date();
-        if (now.getHours() === 0 && index_1.config.MostPlayer.Count !== 0 && refreshed === false) {
-            refreshed = true;
-            const configData = readConfigStats();
-            configData[0].MostPlayer.Count = 0;
-            yield fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
-        }
-        if (now.getHours() !== 0) {
-            refreshed = false;
-        }
         const channel = CheckChannel();
         const embed = new discord_js_1.EmbedBuilder()
             .setTitle(`${index_1.config.ServerName} ?/? játékos`)
             .setDescription("Éppen indul a bot")
-            .addFields({ name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true }, { name: "Legutoljára friessítve", value: `${time(Date.now(), TimeFormat.LongTime)}` })
+            .addFields({ name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true }, { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` })
             .setColor("Grey")
             .setThumbnail(index_1.client.guilds.cache.first().iconURL())
             .setFooter({ text: 'A botot MedveMarci készitette' });
@@ -91,6 +81,16 @@ exports.StatusSystemStart = StatusSystemStart;
 function StatusSystem() {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        const now = new Date();
+        if (now.getHours() === 0 && index_1.config.MostPlayer.Count !== 0 && refreshed === false) {
+            refreshed = true;
+            const configData = readConfigStats();
+            configData[0].MostPlayer.Count = 0;
+            yield fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
+        }
+        if (now.getHours() !== 0) {
+            refreshed = false;
+        }
         const lmessage = readConfigStats()[0];
         const channel = CheckChannel();
         if ((channel === null || channel === void 0 ? void 0 : channel.id) !== lmessage.StatusChannelId) {
@@ -98,41 +98,20 @@ function StatusSystem() {
         }
         const url = `http://${index_1.config.ServerIP}:${index_1.config.ServerPort}`;
         const row = new discord_js_1.ActionRowBuilder();
-        if (index_1.config.Buttons.Button.Enabled) {
-            const button = new discord_js_1.ButtonBuilder()
-                .setStyle(discord_js_1.ButtonStyle.Link)
-                .setLabel(index_1.config.Buttons.Button.Label)
-                .setURL(index_1.config.Buttons.Button.URL);
-            row.addComponents(button);
-        }
-        if (index_1.config.Buttons.Button1.Enabled) {
-            const button1 = new discord_js_1.ButtonBuilder()
-                .setStyle(discord_js_1.ButtonStyle.Link)
-                .setLabel(index_1.config.Buttons.Button1.Label)
-                .setURL(index_1.config.Buttons.Button1.URL);
-            row.addComponents(button1);
-        }
-        if (index_1.config.Buttons.Button2.Enabled) {
-            const button2 = new discord_js_1.ButtonBuilder()
-                .setStyle(discord_js_1.ButtonStyle.Link)
-                .setLabel(index_1.config.Buttons.Button2.Label)
-                .setURL(index_1.config.Buttons.Button2.URL);
-            row.addComponents(button2);
-        }
-        if (index_1.config.Buttons.Button3.Enabled) {
-            const button3 = new discord_js_1.ButtonBuilder()
-                .setStyle(discord_js_1.ButtonStyle.Link)
-                .setLabel(index_1.config.Buttons.Button3.Label)
-                .setURL(index_1.config.Buttons.Button3.URL);
-            row.addComponents(button3);
-        }
-        if (index_1.config.Buttons.Button4.Enabled) {
-            const button4 = new discord_js_1.ButtonBuilder()
-                .setStyle(discord_js_1.ButtonStyle.Link)
-                .setLabel(index_1.config.Buttons.Button4.Label)
-                .setURL(index_1.config.Buttons.Button4.URL);
-            row.addComponents(button4);
-        }
+        const addButtons = (buttonConfig) => {
+            if (buttonConfig.Enabled) {
+                const button = new discord_js_1.ButtonBuilder()
+                    .setStyle(discord_js_1.ButtonStyle.Link)
+                    .setLabel(buttonConfig.Label)
+                    .setURL(buttonConfig.URL);
+                row.addComponents(button);
+            }
+        };
+        addButtons(index_1.config.Buttons.Button);
+        addButtons(index_1.config.Buttons.Button1);
+        addButtons(index_1.config.Buttons.Button2);
+        addButtons(index_1.config.Buttons.Button3);
+        addButtons(index_1.config.Buttons.Button4);
         try {
             players = [];
             const json = yield (yield (0, undici_1.request)(`${url}/info.json`, { method: "GET" })).body.json();
@@ -181,6 +160,11 @@ function StatusSystem() {
             const times = stats.map(e => `${new Date(e.time).getHours()}:00`);
             const playersChart = stats.map(e => e.count);
             const maxPlayers = parseInt(json.vars.sv_maxClients);
+            if (Math.max(...playersChart) > configData[0].MostPlayer.Count) {
+                const cd = readConfigStats();
+                cd[0].MostPlayer.Count = Math.max(...playersChart);
+                fs.writeFileSync('./config.json', JSON.stringify(cd, null, 2));
+            }
             chart.setConfig({
                 type: "line",
                 data: {
@@ -248,7 +232,7 @@ function StatusSystem() {
             if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
                 embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true });
             }
-            embed.addFields({ name: "Legutoljára friessítve", value: `${time(Date.now(), TimeFormat.LongTime)}` });
+            embed.addFields({ name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` });
             const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
             if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
                 yield (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.edit({ embeds: [embed], components: [row] }));
@@ -344,7 +328,7 @@ function StatusSystem() {
             if (index_1.config.MostPlayer.Enabled === true && mostPlayer !== 0) {
                 embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${mostPlayer}`, inline: true });
             }
-            embed.addFields({ name: "Legutoljára friessítve", value: `${time(Date.now(), TimeFormat.LongTime)}` });
+            embed.addFields({ name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` });
             const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
             if (index_1.config.Buttons.Button.Enabled || index_1.config.Buttons.Button1.Enabled || index_1.config.Buttons.Button2.Enabled || index_1.config.Buttons.Button3.Enabled || index_1.config.Buttons.Button4.Enabled) {
                 yield (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.edit({ embeds: [embed], components: [row] }));
