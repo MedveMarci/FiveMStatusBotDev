@@ -11,56 +11,90 @@ let ip: string;
 let refreshed = false;
 
 export async function StatusSystemStart() {
+    try {
+        const channel = CheckChannel();
+        const embed = new EmbedBuilder()
+        .setTitle(`${config.ServerName} ?/? játékos`)
+        .setDescription("Éppen indul a bot")
+        .addFields(
+            { name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true },
+            { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`}
+        )
+        .setColor("Grey")
+        .setThumbnail(client.guilds.cache.first()!.iconURL()!)
+        .setFooter({text: 'A botot MedveMarci készitette'});
+        client.user?.setActivity(`${config.ServerName}`, { type: ActivityType.Watching });
+        const lmessage = config;
+        channel?.messages.fetch({ limit: 1 }).then(async messages => {
+            let lastMessage = messages.first();
+            if (lastMessage == null) {
+                const message = await channel?.send({ embeds: [ embed ] });
+                lastMessage = message;
+                const config = readConfigStats();
+                config[0].MessageID = message?.id;
+                try {
+                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                } catch (e) {
+                    console.log(`Hiba a file írásakor `, e);
+                }
+                await StatusSystem();
+            } else
+            if (lmessage.MessageID === lastMessage?.id) {
+                const statusmessage = await channel?.messages.fetch(lmessage.MessageID);
+                await statusmessage?.edit({ embeds: [ embed ] });
+                const config = readConfigStats();
+                config[0].MessageID = channel?.messages.cache.last()?.id;
+                try {
+                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                } catch (e) {
+                    console.log(`Hiba a file írásakor `, e);
+                }
+                await StatusSystem();
+            } else {
+                const message = await channel?.send({ embeds: [ embed ] });
+                const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
+                config.MessageID = message?.id;
+                try {
+                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                } catch (e) {
+                    console.log(`Hiba a file írásakor `, e);
+                }
+                await StatusSystem();
+            }
+        });
+    } catch (e) {
+        const now = new Date();
+    if (now.getHours() === 0 && config.MostPlayer.Count !== 0 && refreshed === false) {
+        refreshed = true;
+        const configData = readConfigStats();
+        configData[0].MostPlayer.Count = 0;
+        await fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
+    }
+    if (now.getHours() !== 0) {
+        refreshed = false;
+    }
+    const lmessage = readConfigStats()[0];
     const channel = CheckChannel();
-    const embed = new EmbedBuilder()
-    .setTitle(`${config.ServerName} ?/? játékos`)
-    .setDescription("Éppen indul a bot")
-    .addFields(
-        { name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true },
-        { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`}
-    )
-    .setColor("Grey")
-    .setThumbnail(client.guilds.cache.first()!.iconURL()!)
-    .setFooter({text: 'A botot MedveMarci készitette'});
-    client.user?.setActivity(`${config.ServerName}`, { type: ActivityType.Watching });
-    const lmessage = config;
-    channel?.messages.fetch({ limit: 1 }).then(async messages => {
-        let lastMessage = messages.first();
-        if (lastMessage == null) {
-            const message = await channel?.send({ embeds: [ embed ] });
-            lastMessage = message;
-            const config = readConfigStats();
-            config[0].MessageID = message?.id;
-            try {
-                fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
-            } catch (e) {
-                console.log(`Hiba a file írásakor `, e);
-            }
-            await StatusSystem();
-        } else
-        if (lmessage.MessageID === lastMessage?.id) {
-            const statusmessage = await channel?.messages.fetch(lmessage.MessageID);
-            await statusmessage?.edit({ embeds: [ embed ] });
-            const config = readConfigStats();
-            config[0].MessageID = channel?.messages.cache.last()?.id;
-            try {
-                fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
-            } catch (e) {
-                console.log(`Hiba a file írásakor `, e);
-            }
-            await StatusSystem();
-        } else {
-            const message = await channel?.send({ embeds: [ embed ] });
-            const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
-            config.MessageID = message?.id;
-            try {
-                fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
-            } catch (e) {
-                console.log(`Hiba a file írásakor `, e);
-            }
-            await StatusSystem();
+    if (channel?.id !== lmessage.StatusChannelId) {
+        StatusSystemStart();
+    }
+    const url = `http://${config.ServerIP}:${config.ServerPort}`;
+    const row = new ActionRowBuilder<ButtonBuilder>();
+    const addButtons = (buttonConfig: any) => {
+        if (buttonConfig.Enabled) {
+            const button = new ButtonBuilder()
+                .setStyle(ButtonStyle.Link)
+                .setLabel(buttonConfig.Label)
+                .setURL(buttonConfig.URL);
+            row.addComponents(button);
         }
-    });
+    };
+    addButtons(config.Buttons.Button);
+    addButtons(config.Buttons.Button1);
+    addButtons(config.Buttons.Button2);
+    addButtons(config.Buttons.Button3);
+    addButtons(config.Buttons.Button4);console.log(e);
+    }
 }
 
 
@@ -196,18 +230,32 @@ async function StatusSystem() {
             ip = `${config.ServerIP} :electric_plug:`;
         }
         const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
+        const serverRestarts = (config.ServerRestarts as []).map((restart: string) => {
+            const [hours, minutes] = restart.split(":").map(Number);
+            const restartDate = new Date();
+            restartDate.setHours(hours, minutes, 0, 0);
+            if (restartDate > new Date()) {
+                return time(restartDate.getTime(), TimeFormat.Relative);
+            } else {
+                restartDate.setDate(restartDate.getDate() + 1);
+                return time(restartDate.getTime(), TimeFormat.ShortTime);
+            }
+        });
         const embed = new EmbedBuilder()
         .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
         .setDescription(`${joinedPlayers}`)
         .addFields(
             { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
-            { name: `**IP** :telescope:`, value: `${ip}`, inline: true }
+            { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
         )
         .setColor("Green")
         .setImage(`${chart.getUrl()}`)
         .setThumbnail(client.guilds.cache.first()!.iconURL()!)
         .setFooter({text: 'A botot MedveMarci készitette'})
         .setImage(`${chart.getUrl()}`);
+        if (serverRestarts.length > 0) {
+            embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
+        }
         client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
         if (config.AveragePlayer === true && averagePlayer !== 0) {
             embed.addFields(
@@ -363,10 +411,6 @@ function CheckChannel() {
         return;
     }
     return channel;
-}
-
-function now(format: TimeFormat = TimeFormat.ShortDateTime): string {
-    return time(Date.now(), format);
 }
 
 function time(dateValue: number, format: TimeFormat = TimeFormat.ShortDateTime): string {

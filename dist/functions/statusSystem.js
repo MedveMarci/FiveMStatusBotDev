@@ -23,58 +23,94 @@ let refreshed = false;
 function StatusSystemStart() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const channel = CheckChannel();
-        const embed = new discord_js_1.EmbedBuilder()
-            .setTitle(`${index_1.config.ServerName} ?/? játékos`)
-            .setDescription("Éppen indul a bot")
-            .addFields({ name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true }, { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` })
-            .setColor("Grey")
-            .setThumbnail(index_1.client.guilds.cache.first().iconURL())
-            .setFooter({ text: 'A botot MedveMarci készitette' });
-        (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${index_1.config.ServerName}`, { type: discord_js_1.ActivityType.Watching });
-        const lmessage = index_1.config;
-        channel === null || channel === void 0 ? void 0 : channel.messages.fetch({ limit: 1 }).then((messages) => __awaiter(this, void 0, void 0, function* () {
-            var _b;
-            let lastMessage = messages.first();
-            if (lastMessage == null) {
-                const message = yield (channel === null || channel === void 0 ? void 0 : channel.send({ embeds: [embed] }));
-                lastMessage = message;
-                const config = readConfigStats();
-                config[0].MessageID = message === null || message === void 0 ? void 0 : message.id;
-                try {
-                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+        try {
+            const channel = CheckChannel();
+            const embed = new discord_js_1.EmbedBuilder()
+                .setTitle(`${index_1.config.ServerName} ?/? játékos`)
+                .setDescription("Éppen indul a bot")
+                .addFields({ name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true }, { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` })
+                .setColor("Grey")
+                .setThumbnail(index_1.client.guilds.cache.first().iconURL())
+                .setFooter({ text: 'A botot MedveMarci készitette' });
+            (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${index_1.config.ServerName}`, { type: discord_js_1.ActivityType.Watching });
+            const lmessage = index_1.config;
+            channel === null || channel === void 0 ? void 0 : channel.messages.fetch({ limit: 1 }).then((messages) => __awaiter(this, void 0, void 0, function* () {
+                var _b;
+                let lastMessage = messages.first();
+                if (lastMessage == null) {
+                    const message = yield (channel === null || channel === void 0 ? void 0 : channel.send({ embeds: [embed] }));
+                    lastMessage = message;
+                    const config = readConfigStats();
+                    config[0].MessageID = message === null || message === void 0 ? void 0 : message.id;
+                    try {
+                        fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                    }
+                    catch (e) {
+                        console.log(`Hiba a file írásakor `, e);
+                    }
+                    yield StatusSystem();
                 }
-                catch (e) {
-                    console.log(`Hiba a file írásakor `, e);
+                else if (lmessage.MessageID === (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.id)) {
+                    const statusmessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
+                    yield (statusmessage === null || statusmessage === void 0 ? void 0 : statusmessage.edit({ embeds: [embed] }));
+                    const config = readConfigStats();
+                    config[0].MessageID = (_b = channel === null || channel === void 0 ? void 0 : channel.messages.cache.last()) === null || _b === void 0 ? void 0 : _b.id;
+                    try {
+                        fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                    }
+                    catch (e) {
+                        console.log(`Hiba a file írásakor `, e);
+                    }
+                    yield StatusSystem();
                 }
-                yield StatusSystem();
+                else {
+                    const message = yield (channel === null || channel === void 0 ? void 0 : channel.send({ embeds: [embed] }));
+                    const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
+                    config.MessageID = message === null || message === void 0 ? void 0 : message.id;
+                    try {
+                        fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                    }
+                    catch (e) {
+                        console.log(`Hiba a file írásakor `, e);
+                    }
+                    yield StatusSystem();
+                }
+            }));
+        }
+        catch (e) {
+            const now = new Date();
+            if (now.getHours() === 0 && index_1.config.MostPlayer.Count !== 0 && refreshed === false) {
+                refreshed = true;
+                const configData = readConfigStats();
+                configData[0].MostPlayer.Count = 0;
+                yield fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
             }
-            else if (lmessage.MessageID === (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.id)) {
-                const statusmessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
-                yield (statusmessage === null || statusmessage === void 0 ? void 0 : statusmessage.edit({ embeds: [embed] }));
-                const config = readConfigStats();
-                config[0].MessageID = (_b = channel === null || channel === void 0 ? void 0 : channel.messages.cache.last()) === null || _b === void 0 ? void 0 : _b.id;
-                try {
-                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
-                }
-                catch (e) {
-                    console.log(`Hiba a file írásakor `, e);
-                }
-                yield StatusSystem();
+            if (now.getHours() !== 0) {
+                refreshed = false;
             }
-            else {
-                const message = yield (channel === null || channel === void 0 ? void 0 : channel.send({ embeds: [embed] }));
-                const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
-                config.MessageID = message === null || message === void 0 ? void 0 : message.id;
-                try {
-                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
-                }
-                catch (e) {
-                    console.log(`Hiba a file írásakor `, e);
-                }
-                yield StatusSystem();
+            const lmessage = readConfigStats()[0];
+            const channel = CheckChannel();
+            if ((channel === null || channel === void 0 ? void 0 : channel.id) !== lmessage.StatusChannelId) {
+                StatusSystemStart();
             }
-        }));
+            const url = `http://${index_1.config.ServerIP}:${index_1.config.ServerPort}`;
+            const row = new discord_js_1.ActionRowBuilder();
+            const addButtons = (buttonConfig) => {
+                if (buttonConfig.Enabled) {
+                    const button = new discord_js_1.ButtonBuilder()
+                        .setStyle(discord_js_1.ButtonStyle.Link)
+                        .setLabel(buttonConfig.Label)
+                        .setURL(buttonConfig.URL);
+                    row.addComponents(button);
+                }
+            };
+            addButtons(index_1.config.Buttons.Button);
+            addButtons(index_1.config.Buttons.Button1);
+            addButtons(index_1.config.Buttons.Button2);
+            addButtons(index_1.config.Buttons.Button3);
+            addButtons(index_1.config.Buttons.Button4);
+            console.log(e);
+        }
     });
 }
 exports.StatusSystemStart = StatusSystemStart;
@@ -216,6 +252,18 @@ function StatusSystem() {
                 ip = `${config.ServerIP} :electric_plug:`;
             }
             const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e) => e !== 0).length) || 0);
+            const serverRestarts = config.ServerRestarts.map((restart) => {
+                const [hours, minutes] = restart.split(":").map(Number);
+                const restartDate = new Date();
+                restartDate.setHours(hours, minutes, 0, 0);
+                if (restartDate > new Date()) {
+                    return time(restartDate.getTime(), TimeFormat.Relative);
+                }
+                else {
+                    restartDate.setDate(restartDate.getDate() + 1);
+                    return time(restartDate.getTime(), TimeFormat.ShortTime);
+                }
+            });
             const embed = new discord_js_1.EmbedBuilder()
                 .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
                 .setDescription(`${joinedPlayers}`)
@@ -225,6 +273,9 @@ function StatusSystem() {
                 .setThumbnail(index_1.client.guilds.cache.first().iconURL())
                 .setFooter({ text: 'A botot MedveMarci készitette' })
                 .setImage(`${chart.getUrl()}`);
+            if (serverRestarts.length > 0) {
+                embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
+            }
             (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: discord_js_1.ActivityType.Watching });
             if (config.AveragePlayer === true && averagePlayer !== 0) {
                 embed.addFields({ name: "\u200b", value: "\u200b" }, { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true });
@@ -374,9 +425,6 @@ function CheckChannel() {
         return;
     }
     return channel;
-}
-function now(format = TimeFormat.ShortDateTime) {
-    return time(Date.now(), format);
 }
 function time(dateValue, format = TimeFormat.ShortDateTime) {
     return `<t:${Math.floor(dateValue / 1000)}:${format}>`;

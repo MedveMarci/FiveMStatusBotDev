@@ -11,6 +11,7 @@
       "Enabled": true,
       "Count": 0
     },
+    "ServerRestarts": [],
     "MessageID": "",
     "MaxPlayers": 0,
     "Buttons": {
