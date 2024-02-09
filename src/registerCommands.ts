@@ -1,7 +1,9 @@
-import { ApplicationCommandOptionType, REST, Routes } from 'discord.js';
-import config from '../config.json';
-import { client } from '.';
+import { ApplicationCommandOptionType, Client, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
 import chalk from 'chalk';
+
+const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences ] });
+const config = require("../config.json")[0];
+
 
 const commands = [
 	{
@@ -27,19 +29,53 @@ const commands = [
 				required: true,
 			},
 		],
+	},
+	{
+		name: 'whitelist',
+		description: 'Whitelist be vagy ki kapcsolása.',
+		options: [
+			{
+				name: 'action',
+				description: 'Whitelist be vagy ki kapcsolása.',
+				type: ApplicationCommandOptionType.Boolean,
+				required: true,
+			},
+		],
+	},
+	{
+		name: 'setstatus',
+		description: 'A szerver státusz be vagy ki kapcsolása.',
+		options: [
+			{
+				name: 'action',
+				description: 'A szerver státusz be vagy ki kapcsolása.',
+				type: ApplicationCommandOptionType.Boolean,
+				required: true,
+			},
+		],
 	}
 ];
 
-const rest = new REST({ version: '10' }).setToken(config[0].Token);
+const rest = new REST({ version: '10' }).setToken(config.Token);
 
-export async function registerCommands() {
-	try {
-		console.log(chalk.blue('Elkezdem a parancsok regisztrálását!'));
+client.on(Events.ClientReady, async () => {
+    try {
+		console.log(chalk.yellow("Elkezdem a parancsok regisztrálását!"));
+		try {
+			const clientId = client.user?.id || '';
+			await rest.put(Routes.applicationCommands(clientId), { body: commands });
+		} catch (error) {
+			console.error(error);
+		}
+		console.log(chalk.greenBright("Sikeresen regisztráltam a parancsokat!"));
+		process.exit(0);
+    } catch (e) {
+        console.log(e);
+        console.log(chalk.red("Hibát találtam! Konzolban találod a hibakódot"));
+    }
+});
 
-		const clientId = client.user?.id || '';
-		await rest.put(Routes.applicationCommands(clientId), { body: commands });
-		console.log(chalk.green('Sikeresen regisztráltam a parancsokat!'));
-	} catch (error) {
-		console.error(error);
-	}
-}
+client.login(config.Token).then().catch(e => {
+    console.log(chalk.red("Hiba történt a bejelentkezés során!"));
+    console.log(e);
+});

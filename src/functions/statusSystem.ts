@@ -1,9 +1,11 @@
+import chalk from "chalk";
 import { client, config } from "../index";
-import { ActionRowBuilder, ActivityType, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from "discord.js";
+import { ActionRowBuilder, ActivityType, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel, Events } from "discord.js";
 import { request } from "undici";
 const fs = require("fs");
 const QuickChart = require("quickchart-js");
 
+let status = true
 let players: string[] = [];
 let joinedPlayers;
 let serverstatus: string;
@@ -78,7 +80,6 @@ export async function StatusSystemStart() {
     if (channel?.id !== lmessage.StatusChannelId) {
         StatusSystemStart();
     }
-    const url = `http://${config.ServerIP}:${config.ServerPort}`;
     const row = new ActionRowBuilder<ButtonBuilder>();
     const addButtons = (buttonConfig: any) => {
         if (buttonConfig.Enabled) {
@@ -130,252 +131,274 @@ async function StatusSystem() {
     addButtons(config.Buttons.Button2);
     addButtons(config.Buttons.Button3);
     addButtons(config.Buttons.Button4);
-    try {
-        players = [];
-        const json = await (await request(`${url}/info.json`, { method: "GET" })).body.json() as any;
-        const player = await (await request(`${url}/players.json`, { method: "GET" })).body.json() as any;
-        if (player.length === 0) {
-            players = [ "Jelenleg nincs játékos a szerveren" ];
-        } else {
-            player.forEach((name: any) => {
-                players.push("`" + `${name.name}` + "`");
-            });
-        }
-        joinedPlayers = players.join(", ");
-        if (joinedPlayers.length > 4096) {
-            joinedPlayers = joinedPlayers.substring(0, 4093);
-        }
-        const chart = new QuickChart();
-        const stats = readSavedStats().filter(e => {
-            const date = new Date(e.time);
-            return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
-        });
-        const configData = readConfigStats();
-        if (player.length > configData[0].MostPlayer.Count) {
-            configData[0].MostPlayer.Count = player.length;
-            fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
-        }
-        configData[0].MaxPlayers = parseInt(json.vars.sv_maxClients);
+    if (status === true) {
         try {
-            fs.writeFileSync(`./config.json`, JSON.stringify(configData, null, 2));
-        } catch (e) {
-            console.log(`Hiba a file írásakor `, e);
-        }
-        const config = configData[0];
-        const currentPlayerCount = parseInt(player.length);
-        const now = new Date();
-        if (!isNaN(currentPlayerCount) && (stats.length === 0 || new Date(stats[stats.length - 1].time).getUTCHours() !== now.getUTCHours()))
-            stats.push({ count: currentPlayerCount, time: now.toISOString() });
-        stats.length = Math.min(stats.length, 24);
-        try {
-            fs.writeFileSync(`./chartData.json`, JSON.stringify(stats));
-        } catch (e) {
-            console.log(`Hiba a file írásakor `, e);
-        }
-        const times = stats.map(e => `${new Date(e.time).getHours()}:00`);
-        const playersChart = stats.map(e => e.count);
-        const maxPlayers = parseInt(json.vars.sv_maxClients);
-        if (Math.max(...playersChart) > configData[0].MostPlayer.Count) {
-            const cd = readConfigStats();
-            cd[0].MostPlayer.Count = Math.max(...playersChart);
-            fs.writeFileSync('./config.json', JSON.stringify(cd, null, 2));
-        }
-        chart.setConfig({
-            type: "line",
-            data: {
-                labels: times,
-                datasets: [
-                    {
-                        backgroundColor: config.Colors.BackgroundColor,
-                        borderColor: config.Colors.BorderColor,
-                        data: playersChart,
-                        label: "Játékosok",
-                        fill: "start"
-                    }
-                ]
-            },
-            options: {
-                title: {
-                    text: config.ServerName,
-                    display: true
-                },
-                scales: {
-                    xAxes: [
-                        {
-                            gridLines: {
-                                color: "rgba(200, 200, 200, 0.3)"
-                            }
-                        }
-                    ],
-                    yAxes: [
-                        {
-                            ticks: {
-                                min: 0,
-                                max: maxPlayers,
-                                stepSize: 5
-                            },
-                            gridLines: {
-                                color: "rgba(200, 200, 200, 0.3)"
-                            }
-                        }
-                    ]
-                }
-            }
-        }).setBackgroundColor(config.Colors.OnlineBackgroundColor);
-        if (config.Whitelist === true) {
-            serverstatus = "Whitelist bekapcsolva :lock:";
-            ip = "Nem elérhető";
-        } else {
-            serverstatus = "🟢 Online";
-            ip = `${config.ServerIP} :electric_plug:`;
-        }
-        const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
-        const serverRestarts = (config.ServerRestarts as []).map((restart: string) => {
-            const [hours, minutes] = restart.split(":").map(Number);
-            const restartDate = new Date();
-            restartDate.setHours(hours, minutes, 0, 0);
-            if (restartDate > new Date()) {
-                return time(restartDate.getTime(), TimeFormat.Relative);
+            players = [];
+            const json = await (await request(`${url}/info.json`, { method: "GET" })).body.json() as any;
+            const player = await (await request(`${url}/players.json`, { method: "GET" })).body.json() as any;
+            if (player.length === 0) {
+                players = [ "Jelenleg nincs játékos a szerveren" ];
             } else {
-                restartDate.setDate(restartDate.getDate() + 1);
-                return time(restartDate.getTime(), TimeFormat.ShortTime);
+                player.forEach((name: any) => {
+                    players.push("`" + `${name.name}` + "`");
+                });
             }
-        });
-        const embed = new EmbedBuilder()
-        .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
-        .setDescription(`${joinedPlayers}`)
-        .addFields(
-            { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
-            { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
-        )
-        .setColor("Green")
-        .setImage(`${chart.getUrl()}`)
-        .setThumbnail(client.guilds.cache.first()!.iconURL()!)
-        .setFooter({text: 'A botot MedveMarci készitette'})
-        .setImage(`${chart.getUrl()}`);
-        if (serverRestarts.length > 0) {
-            embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
-        }
-        client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
-        if (config.AveragePlayer === true && averagePlayer !== 0) {
-            embed.addFields(
-                {name: "\u200b", value: "\u200b"},
-                { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
-                );
-        }
-        if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
-            embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true});
-        }
-        embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`});
-        const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
-        if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
-            await lastMessage?.edit({ embeds: [ embed ], components: [ row ] });
-        }
-        else {
-            await lastMessage?.edit({ embeds: [ embed ] });
-        }
-    } catch (e) {
-        console.log(e)
-        const chart = new QuickChart();
-        const stats = readSavedStats().filter(e => {
-            const date = new Date(e.time);
-            return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
-        });
-        const currentPlayerCount = 0;
-        const now = new Date();
-        if (!isNaN(currentPlayerCount) && (stats.length === 0 || new Date(stats[stats.length - 1].time).getUTCHours() !== now.getUTCHours()))
-            stats.push({ count: currentPlayerCount, time: now.toISOString() });
-        stats.length = Math.min(stats.length, 24);
-        try {
-            fs.writeFileSync(`./chartData.json`, JSON.stringify(stats));
-        } catch (e) {
-            console.log(`Hiba a file írásakor `, e);
-        }
-        const times = stats.map(e => `${new Date(e.time).getHours()}:00`);
-        const playersChart = stats.map(e => e.count);
-        const maxPlayers = parseInt(config.MaxPlayers);
-        chart.setConfig({
-            type: "line",
-            data: {
-                labels: times,
-                datasets: [
-                    {
-                        backgroundColor: config.Colors.BackgroundColor,
-                        borderColor: config.Colors.BorderColor,
-                        data: playersChart,
-                        label: "Játékosok",
-                        fill: "start"
-                    }
-                ]
-            },
-            options: {
-                title: {
-                    text: config.ServerName,
-                    display: true
-                },
-                scales: {
-                    xAxes: [
+            joinedPlayers = players.join(", ");
+            if (joinedPlayers.length > 4096) {
+                joinedPlayers = joinedPlayers.substring(0, 4093);
+            }
+            const chart = new QuickChart();
+            const stats = readSavedStats().filter(e => {
+                const date = new Date(e.time);
+                return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
+            });
+            const configData = readConfigStats();
+            if (player.length > configData[0].MostPlayer.Count) {
+                configData[0].MostPlayer.Count = player.length;
+                fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
+            }
+            configData[0].MaxPlayers = parseInt(json.vars.sv_maxClients);
+            try {
+                fs.writeFileSync(`./config.json`, JSON.stringify(configData, null, 2));
+            } catch (e) {
+                console.log(`Hiba a file írásakor `, e);
+            }
+            const config = configData[0];
+            const currentPlayerCount = parseInt(player.length);
+            const now = new Date();
+            if (!isNaN(currentPlayerCount) && (stats.length === 0 || new Date(stats[stats.length - 1].time).getUTCHours() !== now.getUTCHours()))
+                stats.push({ count: currentPlayerCount, time: now.toISOString() });
+            stats.length = Math.min(stats.length, 24);
+            try {
+                fs.writeFileSync(`./chartData.json`, JSON.stringify(stats));
+            } catch (e) {
+                console.log(`Hiba a file írásakor `, e);
+            }
+            const times = stats.map(e => `${new Date(e.time).getHours()}:00`);
+            const playersChart = stats.map(e => e.count);
+            const maxPlayers = parseInt(json.vars.sv_maxClients);
+            if (Math.max(...playersChart) > configData[0].MostPlayer.Count) {
+                const cd = readConfigStats();
+                cd[0].MostPlayer.Count = Math.max(...playersChart);
+                fs.writeFileSync('./config.json', JSON.stringify(cd, null, 2));
+            }
+            chart.setConfig({
+                type: "line",
+                data: {
+                    labels: times,
+                    datasets: [
                         {
-                            gridLines: {
-                                color: "rgba(200, 200, 200, 0.3)"
-                            }
-                        }
-                    ],
-                    yAxes: [
-                        {
-                            ticks: {
-                                min: 0,
-                                max: maxPlayers,
-                                stepSize: 5
-                            },
-                            gridLines: {
-                                color: "rgba(200, 200, 200, 0.3)"
-                            }
+                            backgroundColor: config.Colors.BackgroundColor,
+                            borderColor: config.Colors.BorderColor,
+                            data: playersChart,
+                            label: "Játékosok",
+                            fill: "start"
                         }
                     ]
+                },
+                options: {
+                    title: {
+                        text: config.ServerName,
+                        display: true
+                    },
+                    scales: {
+                        xAxes: [
+                            {
+                                gridLines: {
+                                    color: "rgba(200, 200, 200, 0.3)"
+                                }
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                ticks: {
+                                    min: 0,
+                                    max: maxPlayers,
+                                    stepSize: 5
+                                },
+                                gridLines: {
+                                    color: "rgba(200, 200, 200, 0.3)"
+                                }
+                            }
+                        ]
+                    }
                 }
+            }).setBackgroundColor(config.Colors.OnlineBackgroundColor);
+            if (config.Whitelist === true) {
+                serverstatus = "Whitelist bekapcsolva :lock:";
+                ip = "Nem elérhető";
+            } else {
+                serverstatus = "🟢 Online";
+                ip = `${config.ServerIP} :electric_plug:`;
             }
-        }).setBackgroundColor(config.Colors.OfflineBackgroundColor);
-        const mostPlayer = Math.max(...playersChart);
-        const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
-        if (config.Whitelist === true) {
-            serverstatus = "Whitelist bekapcsolva :lock:";
-            ip = "Nem elérhető";
-        } else {
-            serverstatus = "🔴 Offline";
-            ip = `${config.ServerIP} :electric_plug:`;
-        }
-        client.user?.setActivity(`A szerver offline`, { type: ActivityType.Watching });
-        const embed = new EmbedBuilder()
-        .setTitle(`${config.ServerName} ?/${maxPlayers} játékos`)
-        .addFields(
-            { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
-            { name: `**IP** :telescope:`, value: `${ip}`, inline: true }
-        )
-        .setColor("Red")
-        .setImage(`${chart.getUrl()}`)
-        .setThumbnail(client.guilds.cache.first()!.iconURL()!)
-        .setFooter({text: 'A botot MedveMarci készitette'});
-        if (config.AveragePlayer === true && averagePlayer !== 0) {
-            embed.addFields(
-                {name: "\u200b", value: "\u200b"},
-                { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
-                );
-        }
-        if (config.MostPlayer.Enabled === true && mostPlayer !== 0) {
-            embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${mostPlayer}`, inline: true});
-        }
-        embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`});
+            const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
+            const serverRestarts = (config.ServerRestarts as []).map((restart: string) => {
+                const [hours, minutes] = restart.split(":").map(Number);
+                const restartDate = new Date();
+                restartDate.setHours(hours, minutes, 0, 0);
+                if (restartDate > new Date()) {
+                    return time(restartDate.getTime(), TimeFormat.Relative);
+                } else {
+                    restartDate.setDate(restartDate.getDate() + 1);
+                    return time(restartDate.getTime(), TimeFormat.ShortTime);
+                }
+            });
+            const embed = new EmbedBuilder()
+            .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
+            .setDescription(`${joinedPlayers}`)
+            .addFields(
+                { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
+                { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
+            )
+            .setColor("Green")
+            .setImage(`${chart.getUrl()}`)
+            .setThumbnail(client.guilds.cache.first()!.iconURL()!)
+            .setFooter({text: 'A botot MedveMarci készitette'})
+            .setImage(`${chart.getUrl()}`);
+            if (serverRestarts.length > 0) {
+                embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
+            }
+            client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
+            if (config.AveragePlayer === true && averagePlayer !== 0) {
+                embed.addFields(
+                    {name: "\u200b", value: "\u200b"},
+                    { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
+                    );
+            }
+            if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
+                embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true});
+            }
+            embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`});
+            const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
+            if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
+                await lastMessage?.edit({ embeds: [ embed ], components: [ row ] });
+            }
+            else {
+                await lastMessage?.edit({ embeds: [ embed ] });
+            }
+        } catch (e) {
+            console.log(e)
+            const chart = new QuickChart();
+            const stats = readSavedStats().filter(e => {
+                const date = new Date(e.time);
+                return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
+            });
+            const currentPlayerCount = 0;
+            const now = new Date();
+            if (!isNaN(currentPlayerCount) && (stats.length === 0 || new Date(stats[stats.length - 1].time).getUTCHours() !== now.getUTCHours()))
+                stats.push({ count: currentPlayerCount, time: now.toISOString() });
+            stats.length = Math.min(stats.length, 24);
+            try {
+                fs.writeFileSync(`./chartData.json`, JSON.stringify(stats));
+            } catch (e) {
+                console.log(`Hiba a file írásakor `, e);
+            }
+            const times = stats.map(e => `${new Date(e.time).getHours()}:00`);
+            const playersChart = stats.map(e => e.count);
+            const maxPlayers = parseInt(config.MaxPlayers);
+            chart.setConfig({
+                type: "line",
+                data: {
+                    labels: times,
+                    datasets: [
+                        {
+                            backgroundColor: config.Colors.BackgroundColor,
+                            borderColor: config.Colors.BorderColor,
+                            data: playersChart,
+                            label: "Játékosok",
+                            fill: "start"
+                        }
+                    ]
+                },
+                options: {
+                    title: {
+                        text: config.ServerName,
+                        display: true
+                    },
+                    scales: {
+                        xAxes: [
+                            {
+                                gridLines: {
+                                    color: "rgba(200, 200, 200, 0.3)"
+                                }
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                ticks: {
+                                    min: 0,
+                                    max: maxPlayers,
+                                    stepSize: 5
+                                },
+                                gridLines: {
+                                    color: "rgba(200, 200, 200, 0.3)"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }).setBackgroundColor(config.Colors.OfflineBackgroundColor);
+            const mostPlayer = Math.max(...playersChart);
+            const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
+            if (config.Whitelist === true) {
+                serverstatus = "Whitelist bekapcsolva :lock:";
+                ip = "Nem elérhető";
+            } else {
+                serverstatus = "🔴 Offline";
+                ip = `${config.ServerIP} :electric_plug:`;
+            }
+            client.user?.setActivity(`A szerver offline`, { type: ActivityType.Watching });
+            const embed = new EmbedBuilder()
+            .setTitle(`${config.ServerName} ?/${maxPlayers} játékos`)
+            .addFields(
+                { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
+                { name: `**IP** :telescope:`, value: `${ip}`, inline: true }
+            )
+            .setColor("Red")
+            .setImage(`${chart.getUrl()}`)
+            .setThumbnail(client.guilds.cache.first()!.iconURL()!)
+            .setFooter({text: 'A botot MedveMarci készitette'});
+            if (config.AveragePlayer === true && averagePlayer !== 0) {
+                embed.addFields(
+                    {name: "\u200b", value: "\u200b"},
+                    { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
+                    );
+            }
+            if (config.MostPlayer.Enabled === true && mostPlayer !== 0) {
+                embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${mostPlayer}`, inline: true});
+            }
+            embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`});
 
+            const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
+            if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
+                await lastMessage?.edit({ embeds: [ embed ], components: [ row ] });
+            }
+            else {
+                await lastMessage?.edit({ embeds: [ embed ], components: [] });
+            }
+        } finally {
+            setTimeout(StatusSystem, 5000);
+        }
+    } else {
+        try {
+            const embed = new EmbedBuilder()
+            .setTitle(`${config.ServerName} ?/? játékos`)
+            .setDescription("A státusz ki lett kapcsolva.")
+            .addFields(
+                { name: `Állapot :construction_worker:`, value: "A státusz ki lett kapcsolva.", inline: true },
+                { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`}
+            )
+            .setColor("Grey")
+            .setThumbnail(client.guilds.cache.first()!.iconURL()!)
+            .setFooter({text: 'A botot MedveMarci készitette'});
+        client.user?.setActivity(`${config.ServerName}`, { type: ActivityType.Watching });
         const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
-        if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
-            await lastMessage?.edit({ embeds: [ embed ], components: [ row ] });
+        await lastMessage?.edit({ embeds: [ embed ], components: [] });
+        } catch (error) {
+            console.log(chalk.redBright("Hiba a státusz frissítésekor!"), error);
+        } finally {
+            setTimeout(StatusSystem, 5000);
         }
-        else {
-            await lastMessage?.edit({ embeds: [ embed ], components: [] });
-        }
-    } finally {
-        setTimeout(StatusSystem, 5000);
     }
 }
 
@@ -421,6 +444,10 @@ export function GetChannel(id: string) {
     const guild = client.guilds.cache.first();
     const channel = guild?.channels.cache.get(`${id}`);
     return channel as TextChannel;
+}
+
+export function SetStatus(status1: boolean) {
+    status = status1;
 }
 
 enum TimeFormat {

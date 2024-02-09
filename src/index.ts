@@ -1,11 +1,11 @@
 import { Client, Events, GatewayIntentBits, TextChannel } from "discord.js";
 import chalk from "chalk";
-import { StatusSystemStart } from "./functions/statusSystem";
-const config = require("../config.json")[0];
+import { SetStatus, StatusSystemStart } from "./functions/statusSystem";
 import fs from "fs";
-import { registerCommands } from "./registerCommands";
-const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences ] });
 export { client, config }
+
+const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences ] });
+const config = require("../config.json")[0];
 
 const requiredFields = [
     { field: "ServerIP", message: "Kérlek add meg a szerver IP-jét a config.json fájlban!" },
@@ -34,9 +34,6 @@ client.on(Events.ClientReady, async () => {
         ));
     }
     try {
-        console.log(chalk.blue("Elkezdem a parancsok regisztrálását!"));
-        await registerCommands();
-        console.log(chalk.green("Sikeresen regisztráltam a parancsokat!"));
         await StatusSystemStart();
         console.log(chalk.green(`${client.user?.username} sikeresen elindult!`));
     } catch (e) {
@@ -80,11 +77,39 @@ client.on(Events.InteractionCreate as any, async (interaction) => {
             console.log(e)
         }
     }
+    if (interaction.commandName === "whitelist") {
+        const action = interaction.options.getBoolean("action", true);
+        const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
+        config[0].Whitelist = action;
+        fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
+        try {
+            if (action === true) {
+                await interaction.reply({ content: `A whitelist sikeresen be lett kapcsolva!`, ephemeral: true });
+            }
+            if (action === false) {
+                await interaction.reply({ content: `A whitelist sikeresen ki lett kapcsolva!`, ephemeral: true });
+            }
+        } catch (e) {
+            console.log(e)
+        }
+    }
+    if (interaction.commandName === "setstatus") {
+        const action = interaction.options.getBoolean("action", true);
+        SetStatus(action)
+        try {
+            if (action === true) {
+                await interaction.reply({ content: `A szerver státusz sikeresen be lett kapcsolva!`, ephemeral: true });
+            }
+            if (action === false) {
+                await interaction.reply({ content: `A szerver státusz sikeresen ki lett kapcsolva!`, ephemeral: true });
+            }
+        } catch (e) {
+            console.log(e)
+        }
+    }
 })
 
-client.login(config.Token).then(() => {
-    console.log(chalk.green("Sikeresen bejelentkeztem!"));
-}).catch(e => {
+client.login(config.Token).then().catch(e => {
     console.log(chalk.red("Hiba történt a bejelentkezés során!"));
     console.log(e);
 });

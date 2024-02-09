@@ -12,11 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerCommands = void 0;
 const discord_js_1 = require("discord.js");
-const config_json_1 = __importDefault(require("../config.json"));
-const _1 = require(".");
 const chalk_1 = __importDefault(require("chalk"));
+const client = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildPresences] });
+const config = require("../config.json")[0];
 const commands = [
     {
         name: 'setchannel',
@@ -41,21 +40,53 @@ const commands = [
                 required: true,
             },
         ],
+    },
+    {
+        name: 'whitelist',
+        description: 'Whitelist be vagy ki kapcsolása.',
+        options: [
+            {
+                name: 'action',
+                description: 'Whitelist be vagy ki kapcsolása.',
+                type: discord_js_1.ApplicationCommandOptionType.Boolean,
+                required: true,
+            },
+        ],
+    },
+    {
+        name: 'setstatus',
+        description: 'A szerver státusz be vagy ki kapcsolása.',
+        options: [
+            {
+                name: 'action',
+                description: 'A szerver státusz be vagy ki kapcsolása.',
+                type: discord_js_1.ApplicationCommandOptionType.Boolean,
+                required: true,
+            },
+        ],
     }
 ];
-const rest = new discord_js_1.REST({ version: '10' }).setToken(config_json_1.default[0].Token);
-function registerCommands() {
+const rest = new discord_js_1.REST({ version: '10' }).setToken(config.Token);
+client.on(discord_js_1.Events.ClientReady, () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    return __awaiter(this, void 0, void 0, function* () {
+    try {
+        console.log(chalk_1.default.yellow("Elkezdem a parancsok regisztrálását!"));
         try {
-            console.log(chalk_1.default.blue('Elkezdem a parancsok regisztrálását!'));
-            const clientId = ((_a = _1.client.user) === null || _a === void 0 ? void 0 : _a.id) || '';
+            const clientId = ((_a = client.user) === null || _a === void 0 ? void 0 : _a.id) || '';
             yield rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: commands });
-            console.log(chalk_1.default.green('Sikeresen regisztráltam a parancsokat!'));
         }
         catch (error) {
             console.error(error);
         }
-    });
-}
-exports.registerCommands = registerCommands;
+        console.log(chalk_1.default.greenBright("Sikeresen regisztráltam a parancsokat!"));
+        process.exit(0);
+    }
+    catch (e) {
+        console.log(e);
+        console.log(chalk_1.default.red("Hibát találtam! Konzolban találod a hibakódot"));
+    }
+}));
+client.login(config.Token).then().catch(e => {
+    console.log(chalk_1.default.red("Hiba történt a bejelentkezés során!"));
+    console.log(e);
+});

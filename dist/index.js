@@ -16,12 +16,11 @@ exports.config = exports.client = void 0;
 const discord_js_1 = require("discord.js");
 const chalk_1 = __importDefault(require("chalk"));
 const statusSystem_1 = require("./functions/statusSystem");
-const config = require("../config.json")[0];
-exports.config = config;
 const fs_1 = __importDefault(require("fs"));
-const registerCommands_1 = require("./registerCommands");
 const client = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildPresences] });
 exports.client = client;
+const config = require("../config.json")[0];
+exports.config = config;
 const requiredFields = [
     { field: "ServerIP", message: "Kérlek add meg a szerver IP-jét a config.json fájlban!" },
     { field: "ServerPort", message: "Kérlek add meg a szerver portját a config.json fájlban!" },
@@ -46,9 +45,6 @@ client.on(discord_js_1.Events.ClientReady, () => __awaiter(void 0, void 0, void 
             client.guilds.cache.first().name));
     }
     try {
-        console.log(chalk_1.default.blue("Elkezdem a parancsok regisztrálását!"));
-        yield (0, registerCommands_1.registerCommands)();
-        console.log(chalk_1.default.green("Sikeresen regisztráltam a parancsokat!"));
         yield (0, statusSystem_1.StatusSystemStart)();
         console.log(chalk_1.default.green(`${(_a = client.user) === null || _a === void 0 ? void 0 : _a.username} sikeresen elindult!`));
     }
@@ -96,10 +92,40 @@ client.on(discord_js_1.Events.InteractionCreate, (interaction) => __awaiter(void
             console.log(e);
         }
     }
+    if (interaction.commandName === "whitelist") {
+        const action = interaction.options.getBoolean("action", true);
+        const config = JSON.parse(fs_1.default.readFileSync(`./config.json`, "utf-8"));
+        config[0].Whitelist = action;
+        fs_1.default.writeFileSync("./config.json", JSON.stringify(config, null, 2));
+        try {
+            if (action === true) {
+                yield interaction.reply({ content: `A whitelist sikeresen be lett kapcsolva!`, ephemeral: true });
+            }
+            if (action === false) {
+                yield interaction.reply({ content: `A whitelist sikeresen ki lett kapcsolva!`, ephemeral: true });
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+    if (interaction.commandName === "setstatus") {
+        const action = interaction.options.getBoolean("action", true);
+        (0, statusSystem_1.SetStatus)(action);
+        try {
+            if (action === true) {
+                yield interaction.reply({ content: `A szerver státusz sikeresen be lett kapcsolva!`, ephemeral: true });
+            }
+            if (action === false) {
+                yield interaction.reply({ content: `A szerver státusz sikeresen ki lett kapcsolva!`, ephemeral: true });
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
 }));
-client.login(config.Token).then(() => {
-    console.log(chalk_1.default.green("Sikeresen bejelentkeztem!"));
-}).catch(e => {
+client.login(config.Token).then().catch(e => {
     console.log(chalk_1.default.red("Hiba történt a bejelentkezés során!"));
     console.log(e);
 });
