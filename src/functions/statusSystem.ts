@@ -1,5 +1,5 @@
-import { client, GetChannel, config } from "../index";
-import { ActionRowBuilder, ActivityType, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
+import { client, config } from "../index";
+import { ActionRowBuilder, ActivityType, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from "discord.js";
 import { request } from "undici";
 const fs = require("fs");
 const QuickChart = require("quickchart-js");
@@ -132,8 +132,8 @@ async function StatusSystem() {
     addButtons(config.Buttons.Button4);
     try {
         players = [];
-        const json = await (await request(`${url}/info.json`, { method: "GET" })).body.json();
-        const player = await (await request(`${url}/players.json`, { method: "GET" })).body.json();
+        const json = await (await request(`${url}/info.json`, { method: "GET" })).body.json() as any;
+        const player = await (await request(`${url}/players.json`, { method: "GET" })).body.json() as any;
         if (player.length === 0) {
             players = [ "Jelenleg nincs játékos a szerveren" ];
         } else {
@@ -415,6 +415,12 @@ function CheckChannel() {
 
 function time(dateValue: number, format: TimeFormat = TimeFormat.ShortDateTime): string {
     return `<t:${Math.floor(dateValue / 1000)}:${format}>`;
+}
+
+export function GetChannel(id: string) {
+    const guild = client.guilds.cache.first();
+    const channel = guild?.channels.cache.get(`${id}`);
+    return channel as TextChannel;
 }
 
 enum TimeFormat {

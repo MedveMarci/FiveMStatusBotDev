@@ -3,9 +3,9 @@ import chalk from "chalk";
 import { StatusSystemStart } from "./functions/statusSystem";
 const config = require("../config.json")[0];
 import fs from "fs";
+import { registerCommands } from "./registerCommands";
 const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences ] });
 export { client, config }
-
 
 const requiredFields = [
     { field: "ServerIP", message: "Kérlek add meg a szerver IP-jét a config.json fájlban!" },
@@ -34,6 +34,9 @@ client.on(Events.ClientReady, async () => {
         ));
     }
     try {
+        console.log(chalk.blue("Elkezdem a parancsok regisztrálását!"));
+        await registerCommands();
+        console.log(chalk.green("Sikeresen regisztráltam a parancsokat!"));
         await StatusSystemStart();
         console.log(chalk.green(`${client.user?.username} sikeresen elindult!`));
     } catch (e) {
@@ -56,15 +59,28 @@ client.on(Events.InteractionCreate as any, async (interaction) => {
         } catch (e) {
             console.log(e)
         }
-        
+    }
+    if (interaction.commandName === "setserverrestarts") {
+        const restarts = interaction.options.getString("restarts", true);
+        const restartTimes = restarts.split(", ");
+        if (restartTimes.some((time: any) => !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time))) {
+            try {
+                await interaction.reply({ content: `Nem megfelelő időpont formátum. Példa: 00:00, 12:00`, ephemeral: true });
+            } catch (e) {
+                console.log(e);
+            }
+            return;
+        }
+        const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
+        (config[0].ServerRestarts as any[]) = restartTimes;
+        fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
+        try {
+            await interaction.reply({ content: `A szerver újraindítások sikeresen be lettek állítva!`, ephemeral: true });
+        } catch (e) {
+            console.log(e)
+        }
     }
 })
-
-export function GetChannel(id: string) {
-    const guild = client.guilds.cache.first();
-    const channel = guild?.channels.cache.get(`${id}`);
-    return channel as TextChannel;
-}
 
 client.login(config.Token).then(() => {
     console.log(chalk.green("Sikeresen bejelentkeztem!"));

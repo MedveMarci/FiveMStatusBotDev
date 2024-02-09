@@ -12,13 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetChannel = exports.config = exports.client = void 0;
+exports.config = exports.client = void 0;
 const discord_js_1 = require("discord.js");
 const chalk_1 = __importDefault(require("chalk"));
 const statusSystem_1 = require("./functions/statusSystem");
 const config = require("../config.json")[0];
 exports.config = config;
 const fs_1 = __importDefault(require("fs"));
+const registerCommands_1 = require("./registerCommands");
 const client = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildPresences] });
 exports.client = client;
 const requiredFields = [
@@ -45,6 +46,9 @@ client.on(discord_js_1.Events.ClientReady, () => __awaiter(void 0, void 0, void 
             client.guilds.cache.first().name));
     }
     try {
+        console.log(chalk_1.default.blue("Elkezdem a parancsok regisztrálását!"));
+        yield (0, registerCommands_1.registerCommands)();
+        console.log(chalk_1.default.green("Sikeresen regisztráltam a parancsokat!"));
         yield (0, statusSystem_1.StatusSystemStart)();
         console.log(chalk_1.default.green(`${(_a = client.user) === null || _a === void 0 ? void 0 : _a.username} sikeresen elindult!`));
     }
@@ -70,13 +74,29 @@ client.on(discord_js_1.Events.InteractionCreate, (interaction) => __awaiter(void
             console.log(e);
         }
     }
+    if (interaction.commandName === "setserverrestarts") {
+        const restarts = interaction.options.getString("restarts", true);
+        const restartTimes = restarts.split(", ");
+        if (restartTimes.some((time) => !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time))) {
+            try {
+                yield interaction.reply({ content: `Nem megfelelő időpont formátum. Példa: 00:00, 12:00`, ephemeral: true });
+            }
+            catch (e) {
+                console.log(e);
+            }
+            return;
+        }
+        const config = JSON.parse(fs_1.default.readFileSync(`./config.json`, "utf-8"));
+        config[0].ServerRestarts = restartTimes;
+        fs_1.default.writeFileSync("./config.json", JSON.stringify(config, null, 2));
+        try {
+            yield interaction.reply({ content: `A szerver újraindítások sikeresen be lettek állítva!`, ephemeral: true });
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
 }));
-function GetChannel(id) {
-    const guild = client.guilds.cache.first();
-    const channel = guild === null || guild === void 0 ? void 0 : guild.channels.cache.get(`${id}`);
-    return channel;
-}
-exports.GetChannel = GetChannel;
 client.login(config.Token).then(() => {
     console.log(chalk_1.default.green("Sikeresen bejelentkeztem!"));
 }).catch(e => {

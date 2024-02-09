@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StatusSystemStart = void 0;
+exports.GetChannel = exports.StatusSystemStart = void 0;
 const index_1 = require("../index");
 const discord_js_1 = require("discord.js");
 const undici_1 = require("undici");
@@ -419,7 +419,7 @@ function readConfigStats() {
 }
 function CheckChannel() {
     const config = readConfigStats()[0];
-    const channel = (0, index_1.GetChannel)(config.StatusChannelId);
+    const channel = GetChannel(config.StatusChannelId);
     if (channel == null) {
         console.log("A csatorna nem található!");
         return;
@@ -429,6 +429,12 @@ function CheckChannel() {
 function time(dateValue, format = TimeFormat.ShortDateTime) {
     return `<t:${Math.floor(dateValue / 1000)}:${format}>`;
 }
+function GetChannel(id) {
+    const guild = index_1.client.guilds.cache.first();
+    const channel = guild === null || guild === void 0 ? void 0 : guild.channels.cache.get(`${id}`);
+    return channel;
+}
+exports.GetChannel = GetChannel;
 var TimeFormat;
 (function (TimeFormat) {
     TimeFormat["ShortTime"] = "t";
