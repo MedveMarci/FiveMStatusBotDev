@@ -249,6 +249,7 @@ async function StatusSystem() {
             .addFields(
                 { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
                 { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
+                {name: "\u200b", value: "\u200b"}
             )
             .setColor("Green")
             .setImage(`${chart.getUrl()}`)
@@ -261,7 +262,6 @@ async function StatusSystem() {
             client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
             if (config.AveragePlayer === true && averagePlayer !== 0) {
                 embed.addFields(
-                    {name: "\u200b", value: "\u200b"},
                     { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
                     );
             }

@@ -272,7 +272,7 @@ function StatusSystem() {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
                     .setDescription(`${joinedPlayers}`)
-                    .addFields({ name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true }, { name: `**IP** :telescope:`, value: `${ip}`, inline: true })
+                    .addFields({ name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true }, { name: `**IP** :telescope:`, value: `${ip}`, inline: true }, { name: "\u200b", value: "\u200b" })
                     .setColor("Green")
                     .setImage(`${chart.getUrl()}`)
                     .setThumbnail(index_1.client.guilds.cache.first().iconURL())
@@ -283,7 +283,7 @@ function StatusSystem() {
                 }
                 (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: discord_js_1.ActivityType.Watching });
                 if (config.AveragePlayer === true && averagePlayer !== 0) {
-                    embed.addFields({ name: "\u200b", value: "\u200b" }, { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true });
+                    embed.addFields({ name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true });
                 }
                 if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
                     embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true });
