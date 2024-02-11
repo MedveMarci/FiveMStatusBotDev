@@ -57,7 +57,7 @@ client.on(Events.InteractionCreate as any, async (interaction) => {
             console.log(e)
         }
     }
-    if (interaction.commandName === "setsrestarts") {
+    if (interaction.commandName === "setrestarts") {
         const restarts = interaction.options.getString("restarts", true);
         const restartTimes = restarts.split(", ");
         if (restartTimes.some((time: any) => !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time))) {
