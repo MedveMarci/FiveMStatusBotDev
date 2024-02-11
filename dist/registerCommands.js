@@ -79,7 +79,7 @@ client.on(discord_js_1.Events.ClientReady, () => __awaiter(void 0, void 0, void 
             console.error(error);
         }
         console.log(chalk_1.default.greenBright("Sikeresen regisztráltam a parancsokat!"));
-        process.exit(0);
+        process.exit(1);
     }
     catch (e) {
         console.log(e);

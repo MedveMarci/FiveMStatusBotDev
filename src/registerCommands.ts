@@ -68,7 +68,7 @@ client.on(Events.ClientReady, async () => {
 			console.error(error);
 		}
 		console.log(chalk.greenBright("Sikeresen regisztráltam a parancsokat!"));
-		process.exit(0);
+		process.exit(1);
     } catch (e) {
         console.log(e);
         console.log(chalk.red("Hibát találtam! Konzolban találod a hibakódot"));

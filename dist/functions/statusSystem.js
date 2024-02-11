@@ -152,7 +152,6 @@ function StatusSystem() {
         addButtons(index_1.config.Buttons.Button2);
         addButtons(index_1.config.Buttons.Button3);
         addButtons(index_1.config.Buttons.Button4);
-        console.log(status);
         if (status === true) {
             try {
                 players = [];
