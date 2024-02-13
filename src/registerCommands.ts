@@ -24,7 +24,7 @@ const commands = [
 		options: [
 			{
 				name: 'restarts',
-				description: 'A szerver újraindításainak időpontja. PL: 00:00, 06:00, 12:00, 18:00',
+				description: 'A szerver újraindításainak időpontja.',
 				type: ApplicationCommandOptionType.String,
 				required: true,
 			},

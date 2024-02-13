@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = exports.client = void 0;
 const discord_js_1 = require("discord.js");
 const chalk_1 = __importDefault(require("chalk"));
-const statusSystem_1 = require("./functions/statusSystem");
+const statusSystem_1 = require("./statusSystem");
 const fs_1 = __importDefault(require("fs"));
 const client = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildPresences] });
 exports.client = client;
@@ -64,29 +64,49 @@ client.on(discord_js_1.Events.InteractionCreate, (interaction) => __awaiter(void
         fs_1.default.writeFileSync("./config.json", JSON.stringify(config, null, 2));
         try {
             yield (0, statusSystem_1.StatusSystemStart)();
-            yield interaction.reply({ content: `A státusz csatorna sikeresen be lett állítva a ${channel} csatornára!`, ephemeral: true });
+            yield interaction.reply({
+                content: `A státusz csatorna sikeresen be lett állítva a ${channel} csatornára!`,
+                ephemeral: true
+            });
         }
         catch (e) {
             console.log(e);
         }
     }
     if (interaction.commandName === "setrestarts") {
+        const config = JSON.parse(fs_1.default.readFileSync(`./config.json`, "utf-8"));
         const restarts = interaction.options.getString("restarts", true);
         const restartTimes = restarts.split(", ");
-        if (restartTimes.some((time) => !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time))) {
+        if (interaction.options.getString("restarts", true) === "off") {
             try {
-                yield interaction.reply({ content: `Nem megfelelő időpont formátum. Példa: 00:00, 12:00`, ephemeral: true });
+                config[0].ServerRestarts = [];
+                fs_1.default.writeFileSync("./config.json", JSON.stringify(config, null, 2));
+                yield interaction.reply({ content: `Kikapcsoltad a szerver újraindításokat!`, ephemeral: true });
             }
             catch (e) {
                 console.log(e);
             }
             return;
         }
-        const config = JSON.parse(fs_1.default.readFileSync(`./config.json`, "utf-8"));
+        if (restartTimes.some((time) => !/^([01]\d|2[0-3]):([0-5]\d)$/.test(time))) {
+            try {
+                yield interaction.reply({
+                    content: `Nem megfelelő időpont formátum. Ha ki szeretnéd kapcsolni akkor 'off'-ot adj meg. Példa: 00:00, 12:00`,
+                    ephemeral: true
+                });
+            }
+            catch (e) {
+                console.log(e);
+            }
+            return;
+        }
         config[0].ServerRestarts = restartTimes;
         fs_1.default.writeFileSync("./config.json", JSON.stringify(config, null, 2));
         try {
-            yield interaction.reply({ content: `A szerver újraindítások sikeresen be lettek állítva!`, ephemeral: true });
+            yield interaction.reply({
+                content: `A szerver újraindítások sikeresen be lettek állítva!`,
+                ephemeral: true
+            });
         }
         catch (e) {
             console.log(e);

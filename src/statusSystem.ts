@@ -1,11 +1,11 @@
 import chalk from "chalk";
-import { client, config } from "../index";
+import { client, config } from "./index";
 import { ActionRowBuilder, ActivityType, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel, Events } from "discord.js";
 import { request } from "undici";
 const fs = require("fs");
 const QuickChart = require("quickchart-js");
 
-let status = true
+let status = true;
 let players: string[] = [];
 let joinedPlayers;
 let serverstatus: string;
@@ -52,10 +52,19 @@ export async function StatusSystemStart() {
                     console.log(`Hiba a file írásakor `, e);
                 }
                 await StatusSystem();
+            } if (lastMessage.author.id === client.user?.id) {
+                const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
+                config[0].MessageID = lastMessage?.id;
+                try {
+                    fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                } catch (e) {
+                    console.log(`Hiba a file írásakor `, e);
+                }
+                await StatusSystem();
             } else {
                 const message = await channel?.send({ embeds: [ embed ] });
-                const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
-                config.MessageID = message?.id;
+                const config = readConfigStats();
+                config[0].MessageID = message?.id;
                 try {
                     fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
                 } catch (e) {
@@ -65,36 +74,37 @@ export async function StatusSystemStart() {
             }
         });
     } catch (e) {
+        console.log(e);
         const now = new Date();
-    if (now.getHours() === 0 && config.MostPlayer.Count !== 0 && refreshed === false) {
-        refreshed = true;
-        const configData = readConfigStats();
-        configData[0].MostPlayer.Count = 0;
-        await fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
-    }
-    if (now.getHours() !== 0) {
-        refreshed = false;
-    }
-    const lmessage = readConfigStats()[0];
-    const channel = CheckChannel();
-    if (channel?.id !== lmessage.StatusChannelId) {
-        StatusSystemStart();
-    }
-    const row = new ActionRowBuilder<ButtonBuilder>();
-    const addButtons = (buttonConfig: any) => {
-        if (buttonConfig.Enabled) {
-            const button = new ButtonBuilder()
-                .setStyle(ButtonStyle.Link)
-                .setLabel(buttonConfig.Label)
-                .setURL(buttonConfig.URL);
-            row.addComponents(button);
+        if (now.getHours() === 0 && config.MostPlayer.Count !== 0 && refreshed === false) {
+            refreshed = true;
+            const configData = readConfigStats();
+            configData[0].MostPlayer.Count = 0;
+            await fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
         }
-    };
-    addButtons(config.Buttons.Button);
-    addButtons(config.Buttons.Button1);
-    addButtons(config.Buttons.Button2);
-    addButtons(config.Buttons.Button3);
-    addButtons(config.Buttons.Button4);console.log(e);
+        if (now.getHours() !== 0) {
+            refreshed = false;
+        }
+        const lmessage = readConfigStats()[0];
+        const channel = CheckChannel();
+        if (channel?.id !== lmessage.StatusChannelId) {
+            StatusSystemStart();
+        }
+        const row = new ActionRowBuilder<ButtonBuilder>();
+        const addButtons = (buttonConfig: any) => {
+            if (buttonConfig.Enabled) {
+                const button = new ButtonBuilder()
+                    .setStyle(ButtonStyle.Link)
+                    .setLabel(buttonConfig.Label)
+                    .setURL(buttonConfig.URL);
+                row.addComponents(button);
+            }
+        };
+        addButtons(config.Buttons.Button);
+        addButtons(config.Buttons.Button1);
+        addButtons(config.Buttons.Button2);
+        addButtons(config.Buttons.Button3);
+        addButtons(config.Buttons.Button4);
     }
 }
 
@@ -231,7 +241,50 @@ async function StatusSystem() {
                 serverstatus = "🟢 Online";
                 ip = `${config.ServerIP} :electric_plug:`;
             }
-            const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
+            const averagePlayer = Math.round(playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length || 0);
+            
+            const embed = new EmbedBuilder()
+                .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
+                .setDescription(`${joinedPlayers}`)
+                .addFields(
+                    { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
+                    { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
+                    { name: "\u200b", value: "\u200b" }
+                )
+                .setColor("Green")
+                .setImage(`${chart.getUrl()}`)
+                .setThumbnail(client.guilds.cache.first()!.iconURL()!)
+                .setFooter({ text: 'A botot MedveMarci készitette' })
+                .setImage(`${chart.getUrl()}`);
+            client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
+            if (config.AveragePlayer === true && averagePlayer !== 0) {
+                embed.addFields(
+                    { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
+                    );
+            }
+            if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
+                embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true});
+            }
+            if (GetRestarts().length > 0) {
+                embed.addFields(                
+                    {name: "\u200b", value: "\u200b"},
+                    { name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
+            }
+            embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`, inline: true});
+            const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
+            if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
+                await lastMessage?.edit({ embeds: [ embed ], components: [ row ] });
+            }
+            else {
+                await lastMessage?.edit({ embeds: [ embed ] });
+            }
+        } catch (e) {
+            console.log(e);
+            const chart = new QuickChart();
+            const stats = readSavedStats().filter(e => {
+                const date = new Date(e.time);
+                return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
+            });
             const serverRestarts = (config.ServerRestarts as []).map((restart: string) => {
                 const [hours, minutes] = restart.split(":").map(Number);
                 const restartDate = new Date();
@@ -242,46 +295,6 @@ async function StatusSystem() {
                     restartDate.setDate(restartDate.getDate() + 1);
                     return time(restartDate.getTime(), TimeFormat.ShortTime);
                 }
-            });
-            const embed = new EmbedBuilder()
-            .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
-            .setDescription(`${joinedPlayers}`)
-            .addFields(
-                { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
-                { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
-                {name: "\u200b", value: "\u200b"}
-            )
-            .setColor("Green")
-            .setImage(`${chart.getUrl()}`)
-            .setThumbnail(client.guilds.cache.first()!.iconURL()!)
-            .setFooter({text: 'A botot MedveMarci készitette'})
-            .setImage(`${chart.getUrl()}`);
-            if (serverRestarts.length > 0) {
-                embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
-            }
-            client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
-            if (config.AveragePlayer === true && averagePlayer !== 0) {
-                embed.addFields(
-                    { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true}
-                    );
-            }
-            if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
-                embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true});
-            }
-            embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`});
-            const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
-            if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
-                await lastMessage?.edit({ embeds: [ embed ], components: [ row ] });
-            }
-            else {
-                await lastMessage?.edit({ embeds: [ embed ] });
-            }
-        } catch (e) {
-            console.log(e)
-            const chart = new QuickChart();
-            const stats = readSavedStats().filter(e => {
-                const date = new Date(e.time);
-                return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
             });
             const currentPlayerCount = 0;
             const now = new Date();
@@ -339,7 +352,7 @@ async function StatusSystem() {
                 }
             }).setBackgroundColor(config.Colors.OfflineBackgroundColor);
             const mostPlayer = Math.max(...playersChart);
-            const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length) || 0);
+            const averagePlayer = Math.round(playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e: any) => e !== 0).length || 0);
             if (config.Whitelist === true) {
                 serverstatus = "Whitelist bekapcsolva :lock:";
                 ip = "Nem elérhető";
@@ -366,6 +379,9 @@ async function StatusSystem() {
             }
             if (config.MostPlayer.Enabled === true && mostPlayer !== 0) {
                 embed.addFields({name: "Legtöbb játékosok az elmúlt napban", value: `${mostPlayer}`, inline: true});
+            }
+            if (serverRestarts.length > 0) {
+                embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
             }
             embed.addFields({name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`});
 
@@ -419,7 +435,7 @@ function readConfigStats() {
         const path = `./config.json`;
         const content = fs.existsSync(path) ? fs.readFileSync(path, "utf-8") : "[]";
         const json = JSON.parse(content);
-        return json
+        return json;
     } catch (e) {
         console.log(`Hiba a file olvasásakor `, e);
         return [];
@@ -448,6 +464,22 @@ export function GetChannel(id: string) {
 
 export function SetStatus(status1: boolean) {
     status = status1;
+}
+
+function GetRestarts() {
+    const config = readConfigStats()[0];
+    const serverRestarts = (config.ServerRestarts as []).map((restart: string) => {
+        const [hours, minutes] = restart.split(":").map(Number);
+        const restartDate = new Date();
+        restartDate.setHours(hours, minutes, 0, 0);
+        if (restartDate < new Date()) {
+            restartDate.setDate(restartDate.getDate() + 1);
+        }
+        return restartDate.getTime();
+    });
+    serverRestarts.sort((a, b) => Math.abs(a - Date.now()) - Math.abs(b - Date.now()));
+    const restartTimes = serverRestarts.map((restart: number) => time(restart, TimeFormat.Relative))
+    return restartTimes;
 }
 
 enum TimeFormat {

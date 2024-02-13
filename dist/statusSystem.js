@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SetStatus = exports.GetChannel = exports.StatusSystemStart = void 0;
 const chalk_1 = __importDefault(require("chalk"));
-const index_1 = require("../index");
+const index_1 = require("./index");
 const discord_js_1 = require("discord.js");
 const undici_1 = require("undici");
 const fs = require("fs");
@@ -40,7 +40,7 @@ function StatusSystemStart() {
             (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${index_1.config.ServerName}`, { type: discord_js_1.ActivityType.Watching });
             const lmessage = index_1.config;
             channel === null || channel === void 0 ? void 0 : channel.messages.fetch({ limit: 1 }).then((messages) => __awaiter(this, void 0, void 0, function* () {
-                var _b;
+                var _b, _c;
                 let lastMessage = messages.first();
                 if (lastMessage == null) {
                     const message = yield (channel === null || channel === void 0 ? void 0 : channel.send({ embeds: [embed] }));
@@ -68,10 +68,21 @@ function StatusSystemStart() {
                     }
                     yield StatusSystem();
                 }
+                if (lastMessage.author.id === ((_c = index_1.client.user) === null || _c === void 0 ? void 0 : _c.id)) {
+                    const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
+                    config[0].MessageID = lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.id;
+                    try {
+                        fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
+                    }
+                    catch (e) {
+                        console.log(`Hiba a file írásakor `, e);
+                    }
+                    yield StatusSystem();
+                }
                 else {
                     const message = yield (channel === null || channel === void 0 ? void 0 : channel.send({ embeds: [embed] }));
-                    const config = JSON.parse(fs.readFileSync(`./config.json`, "utf-8"));
-                    config.MessageID = message === null || message === void 0 ? void 0 : message.id;
+                    const config = readConfigStats();
+                    config[0].MessageID = message === null || message === void 0 ? void 0 : message.id;
                     try {
                         fs.writeFileSync(`./config.json`, JSON.stringify(config, null, 2));
                     }
@@ -83,6 +94,7 @@ function StatusSystemStart() {
             }));
         }
         catch (e) {
+            console.log(e);
             const now = new Date();
             if (now.getHours() === 0 && index_1.config.MostPlayer.Count !== 0 && refreshed === false) {
                 refreshed = true;
@@ -113,7 +125,6 @@ function StatusSystemStart() {
             addButtons(index_1.config.Buttons.Button2);
             addButtons(index_1.config.Buttons.Button3);
             addButtons(index_1.config.Buttons.Button4);
-            console.log(e);
         }
     });
 }
@@ -256,19 +267,7 @@ function StatusSystem() {
                     serverstatus = "🟢 Online";
                     ip = `${config.ServerIP} :electric_plug:`;
                 }
-                const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e) => e !== 0).length) || 0);
-                const serverRestarts = config.ServerRestarts.map((restart) => {
-                    const [hours, minutes] = restart.split(":").map(Number);
-                    const restartDate = new Date();
-                    restartDate.setHours(hours, minutes, 0, 0);
-                    if (restartDate > new Date()) {
-                        return time(restartDate.getTime(), TimeFormat.Relative);
-                    }
-                    else {
-                        restartDate.setDate(restartDate.getDate() + 1);
-                        return time(restartDate.getTime(), TimeFormat.ShortTime);
-                    }
-                });
+                const averagePlayer = Math.round(playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e) => e !== 0).length || 0);
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
                     .setDescription(`${joinedPlayers}`)
@@ -278,9 +277,6 @@ function StatusSystem() {
                     .setThumbnail(index_1.client.guilds.cache.first().iconURL())
                     .setFooter({ text: 'A botot MedveMarci készitette' })
                     .setImage(`${chart.getUrl()}`);
-                if (serverRestarts.length > 0) {
-                    embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
-                }
                 (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: discord_js_1.ActivityType.Watching });
                 if (config.AveragePlayer === true && averagePlayer !== 0) {
                     embed.addFields({ name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true });
@@ -288,7 +284,10 @@ function StatusSystem() {
                 if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
                     embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true });
                 }
-                embed.addFields({ name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` });
+                if (GetRestarts().length > 0) {
+                    embed.addFields({ name: "\u200b", value: "\u200b" }, { name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
+                }
+                embed.addFields({ name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`, inline: true });
                 const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
                 if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
                     yield (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.edit({ embeds: [embed], components: [row] }));
@@ -303,6 +302,18 @@ function StatusSystem() {
                 const stats = readSavedStats().filter(e => {
                     const date = new Date(e.time);
                     return date.getTime() > Date.now() - 1000 * 60 * 60 * 24;
+                });
+                const serverRestarts = index_1.config.ServerRestarts.map((restart) => {
+                    const [hours, minutes] = restart.split(":").map(Number);
+                    const restartDate = new Date();
+                    restartDate.setHours(hours, minutes, 0, 0);
+                    if (restartDate > new Date()) {
+                        return time(restartDate.getTime(), TimeFormat.Relative);
+                    }
+                    else {
+                        restartDate.setDate(restartDate.getDate() + 1);
+                        return time(restartDate.getTime(), TimeFormat.ShortTime);
+                    }
                 });
                 const currentPlayerCount = 0;
                 const now = new Date();
@@ -361,7 +372,7 @@ function StatusSystem() {
                     }
                 }).setBackgroundColor(index_1.config.Colors.OfflineBackgroundColor);
                 const mostPlayer = Math.max(...playersChart);
-                const averagePlayer = Math.round((playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e) => e !== 0).length) || 0);
+                const averagePlayer = Math.round(playersChart.reduce((a, b) => a + b, 0) / playersChart.filter((e) => e !== 0).length || 0);
                 if (index_1.config.Whitelist === true) {
                     serverstatus = "Whitelist bekapcsolva :lock:";
                     ip = "Nem elérhető";
@@ -383,6 +394,9 @@ function StatusSystem() {
                 }
                 if (index_1.config.MostPlayer.Enabled === true && mostPlayer !== 0) {
                     embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${mostPlayer}`, inline: true });
+                }
+                if (serverRestarts.length > 0) {
+                    embed.addFields({ name: "Szerver újraindítások:", value: serverRestarts.join("\n"), inline: true });
                 }
                 embed.addFields({ name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` });
                 const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
@@ -465,6 +479,21 @@ function SetStatus(status1) {
     status = status1;
 }
 exports.SetStatus = SetStatus;
+function GetRestarts() {
+    const config = readConfigStats()[0];
+    const serverRestarts = config.ServerRestarts.map((restart) => {
+        const [hours, minutes] = restart.split(":").map(Number);
+        const restartDate = new Date();
+        restartDate.setHours(hours, minutes, 0, 0);
+        if (restartDate < new Date()) {
+            restartDate.setDate(restartDate.getDate() + 1);
+        }
+        return restartDate.getTime();
+    });
+    serverRestarts.sort((a, b) => Math.abs(a - Date.now()) - Math.abs(b - Date.now()));
+    const restartTimes = serverRestarts.map((restart) => time(restart, TimeFormat.Relative));
+    return restartTimes;
+}
 var TimeFormat;
 (function (TimeFormat) {
     TimeFormat["ShortTime"] = "t";
