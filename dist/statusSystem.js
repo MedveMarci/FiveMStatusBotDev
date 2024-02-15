@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SetStatus = exports.GetChannel = exports.StatusSystemStart = void 0;
+exports.SetStatus = exports.StatusSystemStart = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const index_1 = require("./index");
 const discord_js_1 = require("discord.js");
@@ -36,7 +36,7 @@ function StatusSystemStart() {
                 .addFields({ name: `Állapot :construction_worker:`, value: "Éppen indul a bot", inline: true }, { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` })
                 .setColor("Grey")
                 .setThumbnail(index_1.client.guilds.cache.first().iconURL())
-                .setFooter({ text: 'A botot MedveMarci készitette' });
+                .setFooter({ text: "A botot MedveMarci készitette" });
             (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${index_1.config.ServerName}`, { type: discord_js_1.ActivityType.Watching });
             const lmessage = index_1.config;
             channel === null || channel === void 0 ? void 0 : channel.messages.fetch({ limit: 1 }).then((messages) => __awaiter(this, void 0, void 0, function* () {
@@ -100,7 +100,7 @@ function StatusSystemStart() {
                 refreshed = true;
                 const configData = readConfigStats();
                 configData[0].MostPlayer.Count = 0;
-                yield fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
+                yield fs.writeFileSync("./config.json", JSON.stringify(configData, null, 2));
             }
             if (now.getHours() !== 0) {
                 refreshed = false;
@@ -137,7 +137,7 @@ function StatusSystem() {
             refreshed = true;
             const configData = readConfigStats();
             configData[0].MostPlayer.Count = 0;
-            yield fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
+            yield fs.writeFileSync("./config.json", JSON.stringify(configData, null, 2));
         }
         if (now.getHours() !== 0) {
             refreshed = false;
@@ -188,7 +188,7 @@ function StatusSystem() {
                 const configData = readConfigStats();
                 if (player.length > configData[0].MostPlayer.Count) {
                     configData[0].MostPlayer.Count = player.length;
-                    fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2));
+                    fs.writeFileSync("./config.json", JSON.stringify(configData, null, 2));
                 }
                 configData[0].MaxPlayers = parseInt(json.vars.sv_maxClients);
                 try {
@@ -215,7 +215,7 @@ function StatusSystem() {
                 if (Math.max(...playersChart) > configData[0].MostPlayer.Count) {
                     const cd = readConfigStats();
                     cd[0].MostPlayer.Count = Math.max(...playersChart);
-                    fs.writeFileSync('./config.json', JSON.stringify(cd, null, 2));
+                    fs.writeFileSync("./config.json", JSON.stringify(cd, null, 2));
                 }
                 chart.setConfig({
                     type: "line",
@@ -275,19 +275,27 @@ function StatusSystem() {
                     .setColor("Green")
                     .setImage(`${chart.getUrl()}`)
                     .setThumbnail(index_1.client.guilds.cache.first().iconURL())
-                    .setFooter({ text: 'A botot MedveMarci készitette' })
+                    .setFooter({ text: "A botot MedveMarci készitette" })
                     .setImage(`${chart.getUrl()}`);
                 (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: discord_js_1.ActivityType.Watching });
                 if (config.AveragePlayer === true && averagePlayer !== 0) {
-                    embed.addFields({ name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true });
+                    embed.addFields({ name: "Átlagos játékosok az elmúlt napban", value: `${averagePlayer}`, inline: true });
                 }
                 if (config.MostPlayer.Enabled === true && config.MostPlayer.Count !== 0) {
-                    embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${config.MostPlayer.Count}`, inline: true });
+                    embed.addFields({
+                        name: "Legtöbb játékosok az elmúlt napban",
+                        value: `${config.MostPlayer.Count}`,
+                        inline: true
+                    });
                 }
                 if (GetRestarts().length > 0) {
                     embed.addFields({ name: "\u200b", value: "\u200b" }, { name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
                 }
-                embed.addFields({ name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}`, inline: true });
+                embed.addFields({
+                    name: "Legutoljára frissítve",
+                    value: `${time(Date.now(), TimeFormat.LongTime)}`,
+                    inline: true
+                });
                 const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
                 if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
                     yield (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.edit({ embeds: [embed], components: [row] }));
@@ -388,9 +396,9 @@ function StatusSystem() {
                     .setColor("Red")
                     .setImage(`${chart.getUrl()}`)
                     .setThumbnail(index_1.client.guilds.cache.first().iconURL())
-                    .setFooter({ text: 'A botot MedveMarci készitette' });
+                    .setFooter({ text: "A botot MedveMarci készitette" });
                 if (index_1.config.AveragePlayer === true && averagePlayer !== 0) {
-                    embed.addFields({ name: "\u200b", value: "\u200b" }, { name: 'Átlagos játékosok az elmúlt napban', value: `${averagePlayer}`, inline: true });
+                    embed.addFields({ name: "\u200b", value: "\u200b" }, { name: "Átlagos játékosok az elmúlt napban", value: `${averagePlayer}`, inline: true });
                 }
                 if (index_1.config.MostPlayer.Enabled === true && mostPlayer !== 0) {
                     embed.addFields({ name: "Legtöbb játékosok az elmúlt napban", value: `${mostPlayer}`, inline: true });
@@ -419,7 +427,7 @@ function StatusSystem() {
                     .addFields({ name: `Állapot :construction_worker:`, value: "A státusz ki lett kapcsolva.", inline: true }, { name: "Legutoljára frissítve", value: `${time(Date.now(), TimeFormat.LongTime)}` })
                     .setColor("Grey")
                     .setThumbnail(index_1.client.guilds.cache.first().iconURL())
-                    .setFooter({ text: 'A botot MedveMarci készitette' });
+                    .setFooter({ text: "A botot MedveMarci készitette" });
                 (_c = index_1.client.user) === null || _c === void 0 ? void 0 : _c.setActivity(`${index_1.config.ServerName}`, { type: discord_js_1.ActivityType.Watching });
                 const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
                 yield (lastMessage === null || lastMessage === void 0 ? void 0 : lastMessage.edit({ embeds: [embed], components: [] }));
@@ -474,9 +482,8 @@ function GetChannel(id) {
     const channel = guild === null || guild === void 0 ? void 0 : guild.channels.cache.get(`${id}`);
     return channel;
 }
-exports.GetChannel = GetChannel;
-function SetStatus(status1) {
-    status = status1;
+function SetStatus(action) {
+    status = action;
 }
 exports.SetStatus = SetStatus;
 function GetRestarts() {

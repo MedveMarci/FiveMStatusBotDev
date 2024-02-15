@@ -18,61 +18,61 @@ const client = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBit
 const config = require("../config.json")[0];
 const commands = [
     {
-        name: 'setchannel',
-        description: 'Beállítja a státusz csatornát.',
+        name: "setchannel",
+        description: "Beállítja a státusz csatornát.",
         options: [
             {
-                name: 'channel',
-                description: 'A csatorna, amire beállítod a státusz csatornát.',
+                name: "channel",
+                description: "A csatorna, amire beállítod a státusz csatornát.",
                 type: discord_js_1.ApplicationCommandOptionType.Channel,
                 required: true,
             },
         ],
     },
     {
-        name: 'setrestarts',
-        description: 'Beállítja a szerver újraindításokat.',
+        name: "setrestarts",
+        description: "Beállítja a szerver újraindításokat.",
         options: [
             {
-                name: 'restarts',
-                description: 'A szerver újraindításainak időpontja.',
+                name: "restarts",
+                description: "A szerver újraindításainak időpontja.",
                 type: discord_js_1.ApplicationCommandOptionType.String,
                 required: true,
             },
         ],
     },
     {
-        name: 'whitelist',
-        description: 'Whitelist be vagy ki kapcsolása.',
+        name: "whitelist",
+        description: "Whitelist be vagy ki kapcsolása.",
         options: [
             {
-                name: 'action',
-                description: 'Whitelist be vagy ki kapcsolása.',
+                name: "action",
+                description: "Whitelist be vagy ki kapcsolása.",
                 type: discord_js_1.ApplicationCommandOptionType.Boolean,
                 required: true,
             },
         ],
     },
     {
-        name: 'setstatus',
-        description: 'A szerver státusz be vagy ki kapcsolása.',
+        name: "setstatus",
+        description: "A szerver státusz be vagy ki kapcsolása.",
         options: [
             {
-                name: 'action',
-                description: 'A szerver státusz be vagy ki kapcsolása.',
+                name: "action",
+                description: "A szerver státusz be vagy ki kapcsolása.",
                 type: discord_js_1.ApplicationCommandOptionType.Boolean,
                 required: true,
             },
         ],
     }
 ];
-const rest = new discord_js_1.REST({ version: '10' }).setToken(config.Token);
+const rest = new discord_js_1.REST({ version: "10" }).setToken(config.Token);
 client.on(discord_js_1.Events.ClientReady, () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         console.log(chalk_1.default.yellow("Elkezdem a parancsok regisztrálását!"));
         try {
-            const clientId = ((_a = client.user) === null || _a === void 0 ? void 0 : _a.id) || '';
+            const clientId = ((_a = client.user) === null || _a === void 0 ? void 0 : _a.id) || "";
             yield rest.put(discord_js_1.Routes.applicationCommands(clientId), { body: commands });
         }
         catch (error) {
