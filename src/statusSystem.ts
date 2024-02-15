@@ -257,7 +257,6 @@ async function StatusSystem() {
             .addFields(
                 { name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true },
                 { name: `**IP** :telescope:`, value: `${ip}`, inline: true },
-                { name: "\u200b", value: "\u200b" }
             )
             .setColor("Green")
             .setImage(`${chart.getUrl()}`)
@@ -265,6 +264,13 @@ async function StatusSystem() {
             .setFooter({ text: "A botot MedveMarci készitette" })
             .setImage(`${chart.getUrl()}`);
             client.user?.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: ActivityType.Watching });
+            if (GetRestarts().length > 0) {
+                embed.addFields(
+                    { name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
+            } else {
+                embed.addFields(
+                    { name: "\u200b", value: "\u200b", inline: true });
+            }
             if (config.AveragePlayer === true && averagePlayer !== 0) {
                 embed.addFields(
                     { name: "Átlagos játékosok az elmúlt napban", value: `${averagePlayer}`, inline: true }
@@ -277,15 +283,9 @@ async function StatusSystem() {
                     inline: true
                 });
             }
-            if (GetRestarts().length > 0) {
-                embed.addFields(
-                    { name: "\u200b", value: "\u200b" },
-                    { name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
-            }
             embed.addFields({
                 name: "Legutoljára frissítve",
-                value: `${time(Date.now(), TimeFormat.LongTime)}`,
-                inline: true
+                value: `${time(Date.now(), TimeFormat.LongTime)}`
             });
             const lastMessage = await channel?.messages.fetch(lmessage.MessageID);
             if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {

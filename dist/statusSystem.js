@@ -271,13 +271,19 @@ function StatusSystem() {
                 const embed = new discord_js_1.EmbedBuilder()
                     .setTitle(`${config.ServerName} ${player.length}/${json.vars.sv_maxClients} játékos`)
                     .setDescription(`${joinedPlayers}`)
-                    .addFields({ name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true }, { name: `**IP** :telescope:`, value: `${ip}`, inline: true }, { name: "\u200b", value: "\u200b" })
+                    .addFields({ name: `**STÁTUSZ**`, value: `${serverstatus}`, inline: true }, { name: `**IP** :telescope:`, value: `${ip}`, inline: true })
                     .setColor("Green")
                     .setImage(`${chart.getUrl()}`)
                     .setThumbnail(index_1.client.guilds.cache.first().iconURL())
                     .setFooter({ text: "A botot MedveMarci készitette" })
                     .setImage(`${chart.getUrl()}`);
                 (_a = index_1.client.user) === null || _a === void 0 ? void 0 : _a.setActivity(`${player.length}/${json.vars.sv_maxClients} játékos elérhető.`, { type: discord_js_1.ActivityType.Watching });
+                if (GetRestarts().length > 0) {
+                    embed.addFields({ name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
+                }
+                else {
+                    embed.addFields({ name: "\u200b", value: "\u200b", inline: true });
+                }
                 if (config.AveragePlayer === true && averagePlayer !== 0) {
                     embed.addFields({ name: "Átlagos játékosok az elmúlt napban", value: `${averagePlayer}`, inline: true });
                 }
@@ -288,13 +294,9 @@ function StatusSystem() {
                         inline: true
                     });
                 }
-                if (GetRestarts().length > 0) {
-                    embed.addFields({ name: "\u200b", value: "\u200b" }, { name: "Szerver újraindítások:", value: GetRestarts().join("\n"), inline: true });
-                }
                 embed.addFields({
                     name: "Legutoljára frissítve",
-                    value: `${time(Date.now(), TimeFormat.LongTime)}`,
-                    inline: true
+                    value: `${time(Date.now(), TimeFormat.LongTime)}`
                 });
                 const lastMessage = yield (channel === null || channel === void 0 ? void 0 : channel.messages.fetch(lmessage.MessageID));
                 if (config.Buttons.Button.Enabled || config.Buttons.Button1.Enabled || config.Buttons.Button2.Enabled || config.Buttons.Button3.Enabled || config.Buttons.Button4.Enabled) {
